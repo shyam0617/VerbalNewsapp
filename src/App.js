@@ -10,7 +10,6 @@ const App = () => {
   const toggleMode = () => {
     setMode((prevMode) => (prevMode === 'dark' ? 'light' : 'dark'));
   };
-
   return (
     <div className={`container ${mode === 'dark' ? 'bg-dark text-white' : ''}`}>
       <Navbar mode={mode} toggleMode={toggleMode} />

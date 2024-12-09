@@ -44,7 +44,9 @@ const VoiceIntegration = ({ articles, onNavigate, mode }) => {
       } else if (transcript.includes('go to business section')) {
         onNavigate('business');
       } else if (transcript.includes('go to entertainment section')) {
-        onNavigate('entertainment');
+        onNavigate('entertainment');}
+        else if (transcript.includes('go to home section')) {
+          onNavigate('home');
       } else if (transcript.includes('stop reading')) {
         window.speechSynthesis.cancel();
       }

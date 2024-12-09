@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import NewsItems from './NewsItems';
 import Spinner from './Spinner';
-import VoiceIntegration from './VoiceIntegration';
+//import VoiceIntegration from './VoiceIntegration';
+import VoiceIntegration from './nlpvoice';
 import { useNavigate } from 'react-router-dom';
 
 const News = ({ category, pageSize, country, mode }) => {
@@ -14,7 +15,10 @@ const News = ({ category, pageSize, country, mode }) => {
 
   const fetchNews = async () => {
     setLoading(true);
-    const url = `https://newsapi.org/v2/top-headlines?country=US&category=${category}&apiKey=942452faada74fb6a1000f702e8d698d&page=${page}&pageSize=${pageSize}`;
+    //https://newsapi.org/v2/top-headlines?country=US&category=${category}&language=en&apiKey=190894644a72409c89e25c889323769e&page=${page}&pageSize=${pageSize}
+
+    const url = `https://newsapi.org/v2/top-headlines?country=US&category=${category}&language=en&apiKey=190894644a72409c89e25c889323769e&page=${page}&pageSize=${pageSize}
+`;
     try {
       const response = await fetch(url);
       const data = await response.json();

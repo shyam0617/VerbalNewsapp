@@ -7,7 +7,7 @@ const Navbar = ({ mode, toggleMode }) => {
   return (
     <nav className={`navbar navbar-expand-lg ${mode === 'dark' ? 'navbar-dark bg-dark' : 'navbar-light bg-light'}`}>
       <div className="container-fluid">
-        <Link className="navbar-brand" to="/">WittyNewsWire</Link>
+        <Link className="navbar-brand" to="/">VerbalNews</Link>
         <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span className="navbar-toggler-icon"></span>
         </button>
