@@ -295,13 +295,16 @@
 
 // export default VoiceIntegration;
 /****************************************************************Nlp translation********************************************** */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useRef } from 'react';
 import nlp from 'compromise'; // Install via `npm install compromise`
 import Fuse from 'fuse.js'; // Install via `npm install fuse.js`
 
 const VoiceIntegration = ({ articles, onNavigate, mode }) => {
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState(null);
+
+  const currentIndexRef = useRef(-1);
+  const articleRefs = useRef([]);
 
   useEffect(() => {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -339,11 +342,15 @@ const VoiceIntegration = ({ articles, onNavigate, mode }) => {
 
   const handleVoiceCommand = (transcript) => {
     const commands = [
+      { intent: 'next_article', phrases: ['move', 'next slide'] },
       { intent: 'read_news', phrases: ['read news', 'reed news'] },
       { intent: 'read_article', phrases: ['read article', 'reed article', 'read arcticle'] },
-      { intent: 'stop_reading', phrases: ['stop reading', 'halt reading', 'pause reading'] },
+      { intent: 'stop_reading', phrases: ['stop reading','top reading'] },
       { intent: 'navigate_sports', phrases: ['go to sports section', 'open sports'] },
       { intent: 'navigate_home', phrases: ['go to home section', 'open home'] },
+      { intent: 'previous_article', phrases: ['previous article', 'previous'] },
+      { intent: 'read_description', phrases: ['read description', 'read about'] },
+  
     ];
 
     const fuse = new Fuse(commands, {
@@ -371,6 +378,15 @@ const VoiceIntegration = ({ articles, onNavigate, mode }) => {
         case 'navigate_home':
           onNavigate('home');
           break;
+        case 'next_article':
+          handleNextArticle();
+            break;
+        case 'previous_article':
+          handlePreviousArticle();
+          break;
+        case 'read_description':
+          handleReadDescription(transcript);
+          break;
         default:
           console.log('Command not recognized.');
       }
@@ -383,6 +399,8 @@ const VoiceIntegration = ({ articles, onNavigate, mode }) => {
     const numberWords = {
       one: 1,
       two: 2,
+      to:2,
+      too:2,
       three: 3,
       four: 4,
       five: 5,
@@ -411,21 +429,98 @@ const VoiceIntegration = ({ articles, onNavigate, mode }) => {
     return -1; // Return -1 if no number is found
   };
 
-  const readNews = () => {
-    const firstArticle = articles[0];
-    if (firstArticle) {
-      speakText(firstArticle.title);
+//   const readNews = () => {
+//     const firstArticle = articles[0];
+//     if (firstArticle) {
+//       speakText(firstArticle.title);
+//     }
+//   };
+const readNews = () => {
+    if (articles && articles.length > 0) {
+      let currentIndex = 0;
+      const readNextArticle = () => {
+        if (currentIndex < articles.length) {
+          const article = articles[currentIndex];
+          const utterance = new SpeechSynthesisUtterance(article.title);
+          
+          // On speech end, move to the next article
+          utterance.onend = () => {
+            currentIndex++;
+            readNextArticle(); // Read next article after finishing current one
+          };
+          
+          // Start reading the current article
+          window.speechSynthesis.speak(utterance);
+        } else {
+          console.log('All news read.');
+        }
+      };
+
+      readNextArticle(); // Start reading from the first article
+    } else {
+      console.log('No news available to read.');
     }
   };
+
+//   // Handle results from the speech recognition
+//   recognition.onresult = (event) => {
+//     let command = '';
+//     for (let i = event.resultIndex; i < event.results.length; i++) {
+//       command = event.results[i][0].transcript;
+//     }
+//     // setTranscript(command);
+//     // processCommand(command);  // Process the command after it's recognized
+//   };
+
 
   const readArticle = (index) => {
     console.log(`Extracted index: ${index}`);
     if (index > 0 && articles[index - 1]) {
+      currentIndexRef.current=index;
+      console.log(currentIndexRef);
       console.log(`Reading article at index: ${index - 1}`);
       speakText(articles[index - 1].title);
     } else {
       console.log('Article not found.');
       speakText('Article not found.');
+    }
+  };
+  const handleNextArticle = () => {
+    // Retrieve the current index from the ref
+    
+    const currentIndex = currentIndexRef.current;
+    console.log("next"+currentIndex);
+    // Check if there is a next article available
+    if (currentIndex + 1 < articles.length) {
+      const nextIndex = currentIndex + 1; // Calculate the next index
+      currentIndexRef.current = nextIndex; // Update the ref with the next index
+      readArticle(nextIndex); // Call readArticle with a 1-based index
+    } else {
+      // If no more articles are available, notify the user
+      speakText('No more articles available.');
+    }
+  };
+  
+  const handlePreviousArticle = () => {
+    const currentIndex = currentIndexRef.current;
+    if (currentIndex - 1 >= 0) {
+      setCurrentIndex(currentIndex - 1);
+      currentIndexRef.current=currentIndex;
+      readArticle(currentIndex - 1);
+    } else {
+      speakText('No previous articles available.');
+    }
+  };
+
+  const handleReadDescription = (transcript) => {
+    let index = extractArticleIndex(transcript);
+    console.log(index);
+    index=index-1;
+
+    if (index >= 0 && index < articles.length) {
+      speakText(articles[index].description || 'No description available.');
+    } else {
+      speakText('Description not found.');
     }
   };
 
@@ -435,6 +530,13 @@ const VoiceIntegration = ({ articles, onNavigate, mode }) => {
     window.speechSynthesis.speak(utterance);
   };
 
+  const setCurrentIndex = (index) => {
+    currentIndexRef.current = index;
+    //setHighlightedIndex(index);
+    if (articleRefs.current[index]) {
+      articleRefs.current[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
   const toggleListening = () => {
     if (isListening) {
       recognition.stop();
@@ -446,15 +548,25 @@ const VoiceIntegration = ({ articles, onNavigate, mode }) => {
   };
 
   return (
-    <div>
-      <button
+    <div className="voice-icon-container">
+      <svg
         onClick={toggleListening}
-        className={`btn btn-${mode === 'dark' ? 'light' : 'dark'}`}
+        xmlns="http://www.w3.org/2000/svg"
+        width="50"
+        height="50"
+        viewBox="0 0 24 24"
+        fill={isListening ? 'green' : 'white'} // Ensuring the icon is visible
+        stroke={isListening ? 'green' : 'black'} // Adjust stroke color
+        strokeWidth="2"
+        className="voice-icon"
       >
-        {isListening ? 'Stop Listening' : 'Start Listening'}
-      </button>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="12" x2="12" y2="18" />
+      </svg>
     </div>
   );
+
 };
 
 export default VoiceIntegration;
+/************************************************************Move next articles**************************************** */
